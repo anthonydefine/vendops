@@ -4,7 +4,7 @@ import { useState } from "react";
 import supabase from "@/app/supabaseClient";
 import { Button } from "@/components/ui/button";
 
-export default function IssueModal({ stop, driverId, onClose }) {
+export default function IssueModal({ stop, driverId, driverName, onClose }) {
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("low");
 
@@ -17,6 +17,22 @@ export default function IssueModal({ stop, driverId, onClose }) {
       urgency,
       description,
     });
+
+    // Call API route to send push notification to admins
+    try {
+      await fetch("/api/send-admin-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "New Issue Reported",
+          message: `${driverName} reported an issue at ${stop.name}`,
+        }),
+      });
+    } catch (err) {
+      console.error("Error sending push notification:", err);
+    }
+
+    alert("Issue reported successfully and admin notified!");
 
     onClose();
   };

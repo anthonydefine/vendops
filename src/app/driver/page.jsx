@@ -8,6 +8,7 @@ import StopCard from "./components/StopCard";
 import IssueModal from "./components/IssueModal";
 import AddNoteModal from "./components/AddNoteModal";
 import UploadPhotoModal from "./components/UploadPhotoModal";
+import SubscribeButton from "../components/SubscribeButton";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
@@ -170,6 +171,7 @@ export default function DriverPage() {
           Welcome, {driver?.full_name || "Driver"}
         </h1>
         <Button onClick={handleLogout}>Logout</Button>
+        <SubscribeButton />
       </div>
 
       <p>Today is: <strong>{currentDay}</strong></p>
@@ -205,6 +207,7 @@ export default function DriverPage() {
         <IssueModal
           stop={activeIssueStop}
           driverId={driver?.id}
+          driverName={driver.name}
           onClose={() => setActiveIssueStop(null)}
         />
       )}
