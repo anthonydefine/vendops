@@ -24,7 +24,7 @@ export default function SubscribeButton() {
     if (typeof window === "undefined") return;
 
     window.OneSignal.push(() => {
-      window.OneSignal.showNativePrompt(); // asks the user to subscribe
+      window.OneSignal.registerForPushNotifications(); // asks the user to subscribe
       window.OneSignal.on("subscriptionChange", (isSubscribed) => {
         setSubscribed(isSubscribed);
       });
