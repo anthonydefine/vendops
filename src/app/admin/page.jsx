@@ -6,6 +6,7 @@ import supabase from '../supabaseClient'
 import ManageDashboard from './components/ManageDashboard'
 import ManageDrivers from './components/ManageDrivers'
 import ManageMaintenance from './components/ManageMaintenance'
+import SubscribeButton from '../components/SubscribeButton'
 
 function LogoutButton() {
   const router = useRouter()
@@ -57,6 +58,7 @@ export default function AdminDashboard() {
           <p className="text-sm text-gray-500">{profile.role}</p>
         </div>
         <LogoutButton />
+        <SubscribeButton />
       </header>
 
       {/* Tabs */}
