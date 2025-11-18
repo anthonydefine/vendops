@@ -9,7 +9,7 @@ export default function OneSignalInit() {
 
     const initOneSignal = async () => {
       await OneSignal.init({ 
-        appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID, 
+        appId: '10f7a6e8-8673-4358-a0ab-00495a00d605', 
         notifyButton: { enable: true } 
       });
     };
