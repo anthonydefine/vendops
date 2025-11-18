@@ -3,25 +3,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import supabase from './supabaseClient'
 
-import OneSignal from 'react-onesignal'
-
 export default function HomePage() {
   const router = useRouter()
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Ensure this code runs only on the client side
-    if (typeof window !== 'undefined') {
-      OneSignal.init({
-        appId: process.env.ONESIGNAL_APP_ID,
-        // You can add other initialization options here
-        notifyButton: {
-          enable: true,
-        }
-      });
-    }
-  }, []);
 
   useEffect(() => {
     // Check if already logged in

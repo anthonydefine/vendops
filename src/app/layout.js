@@ -3,6 +3,8 @@ import "./globals.css";
 
 import { Toaster } from 'sonner';
 
+import OneSignalInit from "./OneSignalInit";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -26,6 +28,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <OneSignalInit />
         {children}
         <Toaster richColors position="top-right" />
       </body>
