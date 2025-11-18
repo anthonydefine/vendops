@@ -10,8 +10,6 @@ import AddNoteModal from "./components/AddNoteModal";
 import UploadPhotoModal from "./components/UploadPhotoModal";
 import SubscribeButton from "../components/SubscribeButton";
 
-import OneSignalInit from "../components/OneSignalInit";
-
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
   const [todayRoute, setTodayRoute] = useState(null);
@@ -167,7 +165,6 @@ export default function DriverPage() {
 
   return (
     <>
-      <OneSignalInit />
       <div className="p-6 space-y-6">
         {/* HEADER */}
         <div className="flex justify-between items-center">

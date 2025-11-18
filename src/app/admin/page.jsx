@@ -8,8 +8,6 @@ import ManageDrivers from './components/ManageDrivers'
 import ManageMaintenance from './components/ManageMaintenance'
 import SubscribeButton from '../components/SubscribeButton'
 
-import OneSignalInit from '../components/OneSignalInit'
-
 function LogoutButton() {
   const router = useRouter()
   const handleLogout = async () => {
@@ -53,7 +51,6 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <OneSignalInit />
       <div className="min-h-screen">
         {/* Header */}
         <header className="shadow p-4 flex justify-between items-center">
