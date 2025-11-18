@@ -10,6 +10,8 @@ import AddNoteModal from "./components/AddNoteModal";
 import UploadPhotoModal from "./components/UploadPhotoModal";
 import SubscribeButton from "../components/SubscribeButton";
 
+import OneSignalInit from "../components/OneSignalInit";
+
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
   const [todayRoute, setTodayRoute] = useState(null);
@@ -164,68 +166,72 @@ export default function DriverPage() {
   if (loading) return <p className="p-6">Loading...</p>;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          Welcome, {driver?.full_name || "Driver"}
-        </h1>
-        <Button onClick={handleLogout}>Logout</Button>
-        <SubscribeButton />
-      </div>
-
-      <p>Today is: <strong>{currentDay}</strong></p>
-
-      {/* NO ROUTE */}
-      {!todayRoute && (
-        <p>No route assigned for today.</p>
-      )}
-
-      {/* ROUTE BUT NO STOPS */}
-      {todayRoute && todayStops.length === 0 && (
-        <p>No stops for today's route.</p>
-      )}
-
-      {/* ROUTE WITH STOPS */}
-      {todayRoute && todayStops.length > 0 && (
-        <div className="space-y-4">
-          {todayStops.map((stop) => (
-            <StopCard
-              key={stop.id}
-              stop={stop}
-              meta={stopMeta[stop.id]}
-              onReportIssue={(s) => setActiveIssueStop(s)}
-              onAddNote={(s) => setActiveNoteStop(s)}
-              onUploadPhoto={(s) => setActivePhotoStop(s)}
-            />
-          ))}
+    <>
+      <OneSignalInit />
+      <div className="p-6 space-y-6">
+        {/* HEADER */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">
+            Welcome, {driver?.full_name || "Driver"}
+          </h1>
+          <Button onClick={handleLogout}>Logout</Button>
+          <SubscribeButton />
         </div>
-      )}
 
-      {/* MODALS */}
-      {activeIssueStop && (
-        <IssueModal
-          stop={activeIssueStop}
-          driverId={driver?.id}
-          driverName={driver.name}
-          onClose={() => setActiveIssueStop(null)}
-        />
-      )}
+        <p>Today is: <strong>{currentDay}</strong></p>
 
-      {activeNoteStop && (
-        <AddNoteModal
-          stop={activeNoteStop}
-          driverId={driver?.id}
-          onClose={() => setActiveNoteStop(null)}
-        />
-      )}
+        {/* NO ROUTE */}
+        {!todayRoute && (
+          <p>No route assigned for today.</p>
+        )}
 
-      {activePhotoStop && (
-        <UploadPhotoModal
-          stop={activePhotoStop}
-          onClose={() => setActivePhotoStop(null)}
-        />
-      )}
-    </div>
+        {/* ROUTE BUT NO STOPS */}
+        {todayRoute && todayStops.length === 0 && (
+          <p>No stops for today's route.</p>
+        )}
+
+        {/* ROUTE WITH STOPS */}
+        {todayRoute && todayStops.length > 0 && (
+          <div className="space-y-4">
+            {todayStops.map((stop) => (
+              <StopCard
+                key={stop.id}
+                stop={stop}
+                meta={stopMeta[stop.id]}
+                onReportIssue={(s) => setActiveIssueStop(s)}
+                onAddNote={(s) => setActiveNoteStop(s)}
+                onUploadPhoto={(s) => setActivePhotoStop(s)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* MODALS */}
+        {activeIssueStop && (
+          <IssueModal
+            stop={activeIssueStop}
+            driverId={driver?.id}
+            driverName={driver.name}
+            onClose={() => setActiveIssueStop(null)}
+          />
+        )}
+
+        {activeNoteStop && (
+          <AddNoteModal
+            stop={activeNoteStop}
+            driverId={driver?.id}
+            onClose={() => setActiveNoteStop(null)}
+          />
+        )}
+
+        {activePhotoStop && (
+          <UploadPhotoModal
+            stop={activePhotoStop}
+            onClose={() => setActivePhotoStop(null)}
+          />
+        )}
+      </div>
+    </>
+    
   );
 }
