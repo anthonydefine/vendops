@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import supabase from "@/app/supabaseClient";
+import supabase from "../../supabaseClient";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+} from "../../../components/ui/dialog";
+import { Button } from "../../../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../../../components/ui/select";
+import { Separator } from "../../../components/ui/separator";
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from "lucide-react";
 
 export default function EditRouteModal({ open, setOpen, route, onRouteUpdated }) {

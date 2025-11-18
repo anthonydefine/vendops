@@ -1,22 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
-import supabase from "@/app/supabaseClient";
+import supabase from "../../supabaseClient";
 
 import CreateRouteModal from "./CreateRouteModal";
 import ViewRoutesModal from "./ViewRoutesModal";
 import EditRouteModal from "./EditRouteModal";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+} from "../../../components/ui/dialog";
+import { Input } from "../../../components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
+import { Badge } from "../../../components/ui/badge";
 
 export default function ManageDrivers() {
   const [drivers, setDrivers] = useState([]);

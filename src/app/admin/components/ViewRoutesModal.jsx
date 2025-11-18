@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import supabase from "@/app/supabaseClient";
+import supabase from "../../supabaseClient";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+} from "../../../components/ui/dialog";
+import { Button } from "../../../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Separator } from "../../../components/ui/separator";
+import { Badge } from "../../../components/ui/badge";
 
 export default function ViewRoutesModal({ open, setOpen, driver, onEditRoute }) {
   const [routes, setRoutes] = useState([]);

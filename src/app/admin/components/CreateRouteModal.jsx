@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import supabase from "@/app/supabaseClient";
+import supabase from "../../supabaseClient";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
+} from "../../../components/ui/dialog";
+import { Button } from "../../../components/ui/button";
+import { Label } from "../../../components/ui/label";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../../../components/ui/select";
+import { Card } from "../../../components/ui/card";
 import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 

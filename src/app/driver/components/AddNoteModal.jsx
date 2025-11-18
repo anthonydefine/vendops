@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import supabase from "@/app/supabaseClient";
-import { Button } from "@/components/ui/button";
+import supabase from "../../../app/supabaseClient";
+import { Button } from "../../../components/ui/button";
 
 export default function AddNoteModal({ stop, driverId, onClose }) {
   const [note, setNote] = useState("");

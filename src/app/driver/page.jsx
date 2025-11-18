@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import supabase from "../supabaseClient";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 import StopCard from "./components/StopCard";
 import IssueModal from "./components/IssueModal";

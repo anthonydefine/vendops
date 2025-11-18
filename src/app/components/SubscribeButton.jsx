@@ -1,22 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../../components/ui/button";
 
 export default function SubscribeButton() {
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
-    // Ensure OneSignal exists
-    if (typeof window !== "undefined") {
-      window.OneSignal = window.OneSignal || [];
+    if (typeof window === "undefined") return;
+    if (!window.OneSignal) return; // SDK not loaded yet
 
-      // Check if already subscribed
-      window.OneSignal.push(async () => {
-        const isPushEnabled = await window.OneSignal.isPushNotificationsEnabled();
-        setSubscribed(isPushEnabled);
-      });
-    }
+    window.OneSignal.push(async function () {
+      try {
+        const isEnabled = await window.OneSignal.isPushNotificationsEnabled();
+        setSubscribed(isEnabled);
+      } catch (err) {
+        console.error("OneSignal not ready yet:", err);
+      }
+    });
   }, []);
 
   const handleSubscribe = () => {
@@ -30,11 +31,16 @@ export default function SubscribeButton() {
     });
   };
 
-  if (subscribed) return <p className="text-green-600 font-semibold">Subscribed to notifications ✅</p>;
-
   return (
-    <Button onClick={handleSubscribe}>
-      Subscribe to Push Notifications
-    </Button>
+    <div>
+      {subscribed ? (
+        <p>You are subscribed to notifications ✅</p>
+      ) : (
+        <Button onClick={handleSubscribe}>
+          Subscribe to Push Notifications
+        </Button>
+      )}
+    </div>
+    
   );
 }
