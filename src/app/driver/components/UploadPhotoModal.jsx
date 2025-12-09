@@ -44,7 +44,7 @@ export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) 
   };
 
   async function uploadPhoto(file) {
-    const { data, error } = await supabase.storage.from('machine_photos').upload('file_path', file).insert(stop_id, stop.id)
+    const { data, error } = await supabase.storage.from('machine_photos').upload('file_path', file)
     if (error) {
       console.log(error)
     } else {
