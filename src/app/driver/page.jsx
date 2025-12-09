@@ -141,13 +141,16 @@ export default function DriverPage() {
         // Photos
         const { data: photoData } = await supabase
           .from("machine_photos")
-          .select("*")
-          .eq("stop_id", stopId);
+          .select("photo_url, created_at")
+          .eq("stop_id", stopId)
+          .order("created_at", { ascending: false })
+          .limit(1);
 
         stopMeta[stopId] = {
           hasIssues: issueData?.length > 0,
           hasNotes: notesData.length > 0,
           hasPhotos: photoData?.length > 0,
+          latestPhoto: photoData?.[0]?.photo_url || null,
           issues: issueData || [],
           notes: notesData || [],
           photos: photoData || []
@@ -173,7 +176,6 @@ export default function DriverPage() {
             Welcome, {driver?.full_name || "Driver"}
           </h1>
           <Button onClick={handleLogout}>Logout</Button>
-          <PushSubscribe />
         </div>
 
         <p>Today is: <strong>{currentDay}</strong></p>

@@ -59,7 +59,6 @@ export default function AdminDashboard() {
             <p className="text-sm text-gray-500">{profile.role}</p>
           </div>
           <LogoutButton />
-          <PushSubscribe />
         </header>
 
         {/* Tabs */}

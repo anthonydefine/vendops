@@ -4,62 +4,66 @@ import { useState } from "react";
 import supabase from "../../supabaseClient";
 import { Button } from "../../../components/ui/button";
 
-export default function UploadPhotoModal({ stop, onClose }) {
-  const [file, setFile] = useState(null);
+export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) {
   const [uploading, setUploading] = useState(false);
 
-  const uploadPhoto = async () => {
-    if (!file) return;
+  const handleUpload = async (event) => {
+    try {
+      setUploading(true);
+      const file = event.target.files[0];
+      if (!file) return;
 
-    setUploading(true);
+      const filePath = `${stop.id}/${Date.now()}.jpg`;
 
-    const filePath = `${stop.id}/${Date.now()}-${file.name}`;
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("machine_photos")
+        .upload(filePath, file);
 
-    // Upload to storage
-    const { error: uploadError } = await supabase.storage
-      .from("machine_photos")
-      .upload(filePath, file);
+      if (uploadError) throw uploadError;
 
-    if (uploadError) {
-      console.error(uploadError);
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("machine_photos")
+        .getPublicUrl(filePath);
+
+      const publicUrl = publicUrlData.publicUrl;
+
+      // Insert DB row
+      await supabase.from("machine_photos").insert({
+        stop_id: stop.id,
+        driver_id: driver.id,
+        photo_url: publicUrl,
+      });
+
+      onUploaded(publicUrl);
+      onClose();
+
+    } catch (err) {
+      console.error("Upload error:", err.message);
+    } finally {
       setUploading(false);
-      return;
     }
-
-    // Get public URL
-    const { data } = supabase.storage
-      .from("machine_photos")
-      .getPublicUrl(filePath);
-
-    // Save in DB
-    await supabase.from("stop_photos").insert({
-      stop_id: stop.id,
-      image_url: data.publicUrl,
-    });
-
-    setUploading(false);
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-xl max-w-md w-full space-y-4">
-        <h2 className="text-xl font-bold">Upload Photo for {stop.name}</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-xl w-80 text-center">
+        <h2 className="font-bold mb-3">Upload Machine Photo</h2>
 
+        {/* THIS TRIGGERS THE CAMERA ON MOBILE */}
         <input
           type="file"
           accept="image/*"
-          className="w-full"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          capture="environment"
+          onChange={handleUpload}
         />
 
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button disabled={uploading} onClick={uploadPhoto}>
-            {uploading ? "Uploading..." : "Upload"}
-          </Button>
-        </div>
+        <Button onClick={onClose} className="mt-4" variant="secondary">
+          Cancel
+        </Button>
       </div>
     </div>
   );
 }
+

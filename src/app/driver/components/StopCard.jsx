@@ -33,7 +33,15 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
         <Button variant="secondary" onClick={() => onAddNote(stop)}>
           Add Note
         </Button>
-        <Button onClick={() => onUploadPhoto(stop)}>Upload Photo</Button>
+        <Button onClick={() => onUploadPhoto(stop)}>
+          Upload Photo
+        </Button>
+
+        {meta?.latestPhoto && (
+          <Button variant="outline" onClick={() => window.open(meta.latestPhoto, "_blank")}>
+            View Latest Photo
+          </Button>
+        )}
       </div>
 
       {/* Collapsible details */}
