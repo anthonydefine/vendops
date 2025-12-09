@@ -43,6 +43,15 @@ export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) 
     }
   };
 
+  async function uploadPhoto(file) {
+    const { data, error } = await supabase.storage.from('machine_photos').upload('file_path', file).insert(stop_id, stop.id)
+    if (error) {
+      console.log(error)
+    } else {
+      console.log("success")
+    }
+  }
+
   return (
     <>
       {/* Hidden file input OUTSIDE the modal */}
@@ -52,7 +61,7 @@ export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) 
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={handleUpload}
+        onChange={uploadPhoto}
       />
 
       {/* Modal */}
