@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
 import {
@@ -7,9 +8,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible"
+import ViewPhotoModal from "./ViewPhotoModal";
 
 export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploadPhoto }) {
-
+  const [viewPhoto, setViewPhoto] = useState(false);
   return (
     <div className="relative border rounded-lg p-4 flex flex-col gap-2">
       {/* Top-right badges */}
@@ -38,11 +40,18 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
         </Button>
 
         {meta?.latestPhoto && (
-          <Button variant="outline" onClick={() => window.open(meta.latestPhoto, "_blank")}>
+          <Button variant="outline" onClick={() => setViewPhoto(true)}>
             View Latest Photo
           </Button>
         )}
       </div>
+
+      {viewPhoto && (
+        <ViewPhotoModal 
+          photoUrl={meta?.photos[0]?.photo_url} 
+          onClose={() => setViewPhoto(false)} 
+        />
+      )}
 
       {/* Collapsible details */}
       {meta && (

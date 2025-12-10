@@ -7,82 +7,87 @@ import { Button } from "../../../components/ui/button";
 export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) {
   const [uploading, setUploading] = useState(false);
 
-  const handleUpload = async (event) => {
+  const handleFileChange = async (event) => {
+    console.log("STOP:", stop);
+    console.log("DRIVER:", driver);
+
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
     try {
-      setUploading(true);
-      const file = event.target.files[0];
-      if (!file) return;
+      const filePath = `${stop.id}/${Date.now()}-${file.name}`;
 
-      const filePath = `${stop.id}/${Date.now()}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
+      // 1. Upload to storage
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
         .from("machine_photos")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
 
+      console.log("Upload result:", uploadData, uploadError);
       if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
+      // 2. Get public URL
+      const { data: urlData, error: urlError } = supabase
+        .storage
         .from("machine_photos")
         .getPublicUrl(filePath);
 
-      const publicUrl = publicUrlData.publicUrl;
+      console.log("URL result:", urlData, urlError);
+      if (urlError) throw urlError;
 
-      await supabase.from("machine_photos").insert({
-        stop_id: stop.id,
-        driver_id: driver.id,
-        photo_url: publicUrl,
-      });
+      const publicUrl = urlData.publicUrl;
 
-      onUploaded(publicUrl);
+      // 3. Insert metadata record
+      const { data: insertData, error: insertError } = await supabase
+        .from("machine_photos")
+        .insert({
+          stop_id: stop.id,
+          driver_id: driver.id,
+          photo_url: publicUrl,
+        });
+
+      console.log("Insert result:", insertData, insertError);
+      if (insertError) throw insertError;
+
+      // 4. Callback
       onClose();
 
-    } catch (err) {
-      console.error("Upload error:", err.message);
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      alert("Failed to upload photo — see console for details.");
     } finally {
       setUploading(false);
     }
   };
 
-  async function uploadPhoto(file) {
-    const { data, error } = await supabase.storage.from('machine_photos').upload('file_path', file)
-    if (error) {
-      console.log(error)
-    } else {
-      console.log("success")
-    }
-  }
-
   return (
-    <>
-      {/* Hidden file input OUTSIDE the modal */}
-      <input
-        id="hiddenFileInput"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={uploadPhoto}
-      />
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
+      <div className="bg-white p-6 rounded-lg w-80 text-center">
+        <h2 className="font-bold text-lg mb-4">Upload Machine Photo</h2>
 
-      {/* Modal */}
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
-        <div className="bg-white p-6 rounded-xl w-80 text-center">
-          <h2 className="font-bold mb-3">Upload Machine Photo</h2>
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          disabled={uploading}
+        />
 
-          <Button
-            onClick={() => document.getElementById("hiddenFileInput").click()}
-            disabled={uploading}
-          >
-            {uploading ? "Uploading..." : "Take Photo"}
-          </Button>
+        {uploading && <p className="mt-2">Uploading...</p>}
 
-          <Button onClick={onClose} className="mt-4" variant="secondary">
+        <div className="mt-4 flex justify-between">
+          <Button onClick={onClose} variant="secondary" disabled={uploading}>
             Cancel
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
+
 
 
