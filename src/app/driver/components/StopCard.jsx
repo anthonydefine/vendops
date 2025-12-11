@@ -10,7 +10,7 @@ import {
 } from "../../../components/ui/collapsible"
 import ViewPhotoModal from "./ViewPhotoModal";
 
-export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploadPhoto }) {
+export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploadPhoto, onViewPhoto }) {
   const [viewPhoto, setViewPhoto] = useState(false);
   return (
     <div className="relative border rounded-lg p-4 flex flex-col gap-2">
@@ -40,19 +40,14 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
         </Button>
 
         {meta?.latestPhoto && (
-          <Button variant="outline" onClick={() => setViewPhoto(true)}>
+          <Button
+            variant="outline"
+            onClick={() => onViewPhoto(meta.latestPhoto)}
+          >
             View Latest Photo
           </Button>
         )}
       </div>
-
-      {viewPhoto && (
-        <ViewPhotoModal 
-          photoUrl={meta?.photos[0]?.photo_url} 
-          onClose={() => setViewPhoto(false)} 
-        />
-      )}
-
       {/* Collapsible details */}
       {meta && (
         <Collapsible>

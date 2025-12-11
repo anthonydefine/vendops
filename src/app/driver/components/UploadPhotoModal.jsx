@@ -1,48 +1,43 @@
-"use client";
+// UploadPhotoModal.jsx
 
+"use client";
 import { useState } from "react";
-import supabase from "../../supabaseClient";
 import { Button } from "../../../components/ui/button";
+import supabase from "../../../app/supabaseClient";
 
 export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) {
   const [uploading, setUploading] = useState(false);
 
-  const handleFileChange = async (event) => {
-    console.log("STOP:", stop);
-    console.log("DRIVER:", driver);
-
-    const file = event.target.files?.[0];
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     setUploading(true);
+
     try {
-      const filePath = `${stop.id}/${Date.now()}-${file.name}`;
+      // 1️⃣ Create correct path
+      const filename = `${Date.now()}-${file.name}`;
+      const filePath = `${stop.id}/${filename}`;
 
-      // 1. Upload to storage
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from("machine_photos")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+      console.log("Uploading to:", filePath); // <--- GOOD
 
-      console.log("Upload result:", uploadData, uploadError);
+      // 2️⃣ Upload file
+      const { data: storageData, error: uploadError } =
+        await supabase.storage.from("machine_photos").upload(filePath, file);
+
       if (uploadError) throw uploadError;
 
-      // 2. Get public URL
-      const { data: urlData, error: urlError } = supabase
-        .storage
+      // 3️⃣ Get public URL from EXACT SAME filePath
+      const { data: urlData } = supabase.storage
         .from("machine_photos")
         .getPublicUrl(filePath);
 
-      console.log("URL result:", urlData, urlError);
-      if (urlError) throw urlError;
-
       const publicUrl = urlData.publicUrl;
 
-      // 3. Insert metadata record
-      const { data: insertData, error: insertError } = await supabase
+      console.log("Public URL:", publicUrl); // <--- GOOD
+
+      // 4️⃣ Insert metadata into DB
+      const { error: dbError } = await supabase
         .from("machine_photos")
         .insert({
           stop_id: stop.id,
@@ -50,44 +45,36 @@ export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) 
           photo_url: publicUrl,
         });
 
-      console.log("Insert result:", insertData, insertError);
-      if (insertError) throw insertError;
+      if (dbError) throw dbError;
 
-      // 4. Callback
+      if (onUploaded) onUploaded(publicUrl);
       onClose();
-
-    } catch (error) {
-      console.error("Error uploading photo:", error);
-      alert("Failed to upload photo — see console for details.");
-    } finally {
-      setUploading(false);
+    } catch (err) {
+      console.error("Error uploading photo:", err.message);
     }
+
+    setUploading(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg w-80 text-center">
-        <h2 className="font-bold text-lg mb-4">Upload Machine Photo</h2>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+      <div className="bg-white p-4 rounded shadow-lg w-80">
+        <h2 className="font-semibold text-lg mb-2">Upload Photo</h2>
 
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFileChange}
-          disabled={uploading}
-        />
+        <input type="file" accept="image/*" onChange={handleFileChange} />
 
-        {uploading && <p className="mt-2">Uploading...</p>}
-
-        <div className="mt-4 flex justify-between">
-          <Button onClick={onClose} variant="secondary" disabled={uploading}>
-            Cancel
+        <div className="mt-4 flex justify-end">
+          <Button variant="outline" onClick={onClose}>
+            Close
           </Button>
         </div>
+
+        {uploading && <p className="text-sm mt-2">Uploading...</p>}
       </div>
     </div>
   );
 }
+
 
 
 

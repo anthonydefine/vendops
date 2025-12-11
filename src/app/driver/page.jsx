@@ -8,6 +8,7 @@ import StopCard from "./components/StopCard";
 import IssueModal from "./components/IssueModal";
 import AddNoteModal from "./components/AddNoteModal";
 import UploadPhotoModal from "./components/UploadPhotoModal";
+import ViewPhotoModal from "./components/ViewPhotoModal";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
@@ -20,6 +21,8 @@ export default function DriverPage() {
   const [activeIssueStop, setActiveIssueStop] = useState(null);
   const [activeNoteStop, setActiveNoteStop] = useState(null);
   const [activePhotoStop, setActivePhotoStop] = useState(null);
+  const [activePhotoViewUrl, setActivePhotoViewUrl] = useState(null);
+
 
   const currentDay = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -184,6 +187,7 @@ export default function DriverPage() {
               onReportIssue={(s) => setActiveIssueStop(s)}
               onAddNote={(s) => setActiveNoteStop(s)}
               onUploadPhoto={(s) => setActivePhotoStop(s)}
+              onViewPhoto={(photoUrl) => setActivePhotoViewUrl(photoUrl)}
             />
           ))}
         </div>
@@ -213,6 +217,13 @@ export default function DriverPage() {
           driver={driver}
           onUploaded={() => handlePhotoUploaded(activePhotoStop)}
           onClose={() => setActivePhotoStop(null)}
+        />
+      )}
+
+      {activePhotoViewUrl && (
+        <ViewPhotoModal
+          photoUrl={activePhotoViewUrl}
+          onClose={() => setActivePhotoViewUrl(null)}
         />
       )}
     </div>
