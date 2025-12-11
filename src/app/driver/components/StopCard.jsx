@@ -2,23 +2,24 @@
 
 import { useState } from "react";
 import { Button } from "../../../components/ui/button";
-import { Badge } from "../../../components/ui/badge";
+import { CameraIcon } from "lucide-react";
+import { MessageSquareMore } from "lucide-react";
+import { MessageSquareWarning } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible"
-import ViewPhotoModal from "./ViewPhotoModal";
 
 export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploadPhoto, onViewPhoto }) {
-  const [viewPhoto, setViewPhoto] = useState(false);
+  
   return (
-    <div className="relative border rounded-lg p-4 flex flex-col gap-2">
+    <div className="relative border-2 shadow-xl rounded-lg p-4 flex flex-col gap-2 hover:border-blue-500">
       {/* Top-right badges */}
       <div className="absolute top-2 right-2 flex gap-1">
-        {meta?.hasIssues && <Badge variant="destructive">🚨</Badge>}
-        {meta?.hasNotes && <Badge variant="secondary">📝</Badge>}
-        {meta?.hasPhotos && <Badge variant="default">📷</Badge>}
+        {meta?.hasIssues && <MessageSquareWarning />}
+        {meta?.hasNotes && <MessageSquareMore />}
+        {meta?.hasPhotos && <CameraIcon />}
       </div>
 
       {/* Stop info */}
@@ -29,30 +30,43 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <Button variant="destructive" onClick={() => onReportIssue(stop)}>
-          Report Issue
+        <Button variant='ghost' onClick={() => onReportIssue(stop)}>
+          <MessageSquareWarning />
+          <span className="hidden md:block">
+            Report Issue
+          </span>
         </Button>
-        <Button variant="secondary" onClick={() => onAddNote(stop)}>
-          Add Note
+        <Button variant="ghost" onClick={() => onAddNote(stop)}>
+          <MessageSquareMore />
+          <span className="hidden md:block">
+            Add Note
+          </span>
         </Button>
-        <Button onClick={() => onUploadPhoto(stop)}>
-          Upload Photo
-        </Button>
-
-        {meta?.latestPhoto && (
+        {meta?.latestPhoto ? (
           <Button
             variant="outline"
             onClick={() => onViewPhoto(meta.latestPhoto)}
           >
             View Latest Photo
           </Button>
+        ) : (
+          <Button className='p-2' variant='outline' size='small' onClick={() => onUploadPhoto(stop)}>
+              <CameraIcon />
+              Upload Photo
+          </Button>
         )}
+        
+        
       </div>
       {/* Collapsible details */}
-      {meta && (
+      {(meta?.issues?.length > 0 || meta?.notes?.length > 0) && (
         <Collapsible>
-          <CollapsibleTrigger>View Details</CollapsibleTrigger>
+          <CollapsibleTrigger>
+            <Button variant='secondary'>View Details</Button>
+          </CollapsibleTrigger>
+
           <CollapsibleContent className="mt-2 space-y-2">
+            
             {meta.issues?.length > 0 && (
               <div>
                 <strong>Issues:</strong>
@@ -77,24 +91,6 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
               </div>
             )}
 
-            {meta.photos?.length > 0 && (
-              <div>
-                <strong>Photos:</strong>
-                <div className="flex gap-2 flex-wrap">
-                  {meta.photos.map((p) => (
-                    <a
-                      key={p.id}
-                      href={p.photo_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline text-blue-600"
-                    >
-                      View
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
           </CollapsibleContent>
         </Collapsible>
       )}

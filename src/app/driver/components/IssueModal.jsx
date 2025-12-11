@@ -18,18 +18,6 @@ export default function IssueModal({ stop, driverId, driverName, onClose }) {
       description,
     });
 
-    // Call API route to send push notification to admins
-    await fetch('/api/send-push', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        title: 'New Issue',
-        body: `${driverName} reported an issue at ${stop.name}`,
-        targetUserId: adminUserId, // or send broadcast and server will query admins
-        data: { issueId: newIssueId }
-      })
-    });
-
     alert("Issue reported successfully and admin notified!");
 
     onClose();

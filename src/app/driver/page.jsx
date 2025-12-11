@@ -4,11 +4,15 @@ import { useState, useEffect } from "react";
 import supabase from "../supabaseClient";
 
 import { Button } from "../../components/ui/button";
+import { Avatar } from "radix-ui";
+
 import StopCard from "./components/StopCard";
 import IssueModal from "./components/IssueModal";
 import AddNoteModal from "./components/AddNoteModal";
 import UploadPhotoModal from "./components/UploadPhotoModal";
 import ViewPhotoModal from "./components/ViewPhotoModal";
+import DriverAvatar from "./components/DriverAvatar";
+import Sidebar from "./components/Sidebar";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
@@ -27,6 +31,23 @@ export default function DriverPage() {
   const currentDay = new Date().toLocaleDateString("en-US", {
     weekday: "long",
   });
+
+  function getInitials(fullName) {
+    // Trim leading/trailing spaces and split the full name by spaces
+    const nameParts = fullName.trim().split(' ');
+
+    // Get the first initial from the first name part
+    const firstInitial = nameParts[0].charAt(0).toUpperCase();
+
+    // Get the last initial from the last name part
+    // Handle cases with only a first name or multiple middle names
+    let lastInitial = '';
+    if (nameParts.length > 1) {
+      lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
+    }
+
+    return firstInitial + lastInitial;
+  }
 
   // Logout
   const handleLogout = async () => {
@@ -163,7 +184,7 @@ export default function DriverPage() {
         <h1 className="text-2xl font-bold">
           Welcome, {driver?.full_name || "Driver"}
         </h1>
-        <Button onClick={handleLogout}>Logout</Button>
+        <DriverAvatar driver={driver} />
       </div>
 
       <p>Today is: <strong>{currentDay}</strong></p>
@@ -175,23 +196,32 @@ export default function DriverPage() {
       {todayRoute && todayStops.length === 0 && (
         <p>No stops for today's route.</p>
       )}
-
-      {/* ROUTE WITH STOPS */}
-      {todayRoute && todayStops.length > 0 && (
-        <div className="space-y-4">
-          {todayStops.map((stop) => (
-            <StopCard
-              key={stop.id}
-              stop={stop}
-              meta={stopMeta[stop.id]}
-              onReportIssue={(s) => setActiveIssueStop(s)}
-              onAddNote={(s) => setActiveNoteStop(s)}
-              onUploadPhoto={(s) => setActivePhotoStop(s)}
-              onViewPhoto={(photoUrl) => setActivePhotoViewUrl(photoUrl)}
-            />
-          ))}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-3 md:col-span-2">
+          {/* ROUTE WITH STOPS */}
+          {todayRoute && todayStops.length > 0 && (
+            <div className="space-y-4">
+              {todayStops.map((stop) => (
+                <StopCard
+                  key={stop.id}
+                  stop={stop}
+                  meta={stopMeta[stop.id]}
+                  onReportIssue={(s) => setActiveIssueStop(s)}
+                  onAddNote={(s) => setActiveNoteStop(s)}
+                  onUploadPhoto={(s) => setActivePhotoStop(s)}
+                  onViewPhoto={(photoUrl) => setActivePhotoViewUrl(photoUrl)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+
+        
+      </div>
+      
 
       {/* MODALS */}
       {activeIssueStop && (
