@@ -12,7 +12,7 @@ import {
 } from "../../../components/ui/collapsible"
 
 export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploadPhoto, onViewPhoto }) {
-  
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <div className="relative border-2 shadow-xl rounded-lg p-4 flex flex-col gap-2 hover:border-blue-500">
       {/* Top-right badges */}
@@ -60,9 +60,11 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
       </div>
       {/* Collapsible details */}
       {(meta?.issues?.length > 0 || meta?.notes?.length > 0) && (
-        <Collapsible>
+        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger>
-            <Button variant='secondary'>View Details</Button>
+            <span className="p-2 border rounded-lg hover:bg-slate-50 cursor-pointer">
+              {isOpen ? "Hide Details" : "View Details"}
+            </span>
           </CollapsibleTrigger>
 
           <CollapsibleContent className="mt-2 space-y-2">
