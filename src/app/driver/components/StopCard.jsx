@@ -19,7 +19,6 @@ export default function StopCard({ stop, meta, onReportIssue, onAddNote, onUploa
       <div className="absolute top-2 right-2 flex gap-1">
         {meta?.hasIssues && <MessageSquareWarning />}
         {meta?.hasNotes && <MessageSquareMore />}
-        {meta?.hasPhotos && <CameraIcon />}
       </div>
 
       {/* Stop info */}

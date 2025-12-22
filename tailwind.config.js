@@ -5,6 +5,9 @@ const {heroui} = require("@heroui/theme");
 module.exports = {
   content: [
     "./node_modules/@heroui/theme/dist/components/avatar.js",
+    './src/pages/**/*.{js,jsx}',
+    './src/components/**/*.{js,jsx}',
+    './src/app/**/*.{js,jsx}',
   ],
   theme: {
     extend: {},

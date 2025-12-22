@@ -11,7 +11,13 @@ import {
 } from "../../../components/ui/dialog";
 import { Button } from "../../../components/ui/button";
 import { Label } from "../../../components/ui/label";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../../../components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "../../../components/ui/select";
 import { Card } from "../../../components/ui/card";
 import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -22,24 +28,39 @@ export default function CreateRouteModal({ open, setOpen, driver, onRouteCreated
   const [selectedStops, setSelectedStops] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // fetch all stops
+  /* ---------------- FETCH STOPS ---------------- */
+
   useEffect(() => {
     const fetchStops = async () => {
-      const { data, error } = await supabase.from("stops").select("*");
-      if (error) console.error("Error fetching stops:", error);
-      else setAllStops(data);
+      const { data, error } = await supabase.from("stops").select("*").order("name");
+      if (error) {
+        console.error(error);
+        toast.error("Failed to load stops");
+      } else {
+        setAllStops(data);
+      }
     };
     fetchStops();
   }, []);
 
+  /* ---------------- STOP SELECTION ---------------- */
+
   const handleAddStop = (stop) => {
-    if (!selectedStops.find((s) => s.id === stop.id)) {
-      setSelectedStops([...selectedStops, stop]);
-    }
+    if (selectedStops.find((s) => s.stop_id === stop.id)) return;
+
+    setSelectedStops([
+      ...selectedStops,
+      {
+        stop_id: stop.id,
+        name: stop.name,
+        visit_frequency: "weekly",
+        week_type: null,
+      },
+    ]);
   };
 
   const handleRemoveStop = (stopId) => {
-    setSelectedStops(selectedStops.filter((s) => s.id !== stopId));
+    setSelectedStops(selectedStops.filter((s) => s.stop_id !== stopId));
   };
 
   const moveStop = (index, direction) => {
@@ -50,46 +71,84 @@ export default function CreateRouteModal({ open, setOpen, driver, onRouteCreated
     setSelectedStops(newStops);
   };
 
+  const updateFrequency = (index, frequency) => {
+    const newStops = [...selectedStops];
+    newStops[index].visit_frequency = frequency;
+    newStops[index].week_type = frequency === "weekly" ? null : "A";
+    setSelectedStops(newStops);
+  };
+
+  const updateWeekType = (index, week) => {
+    const newStops = [...selectedStops];
+    newStops[index].week_type = week;
+    setSelectedStops(newStops);
+  };
+
+  /* ---------------- SAVE ROUTE ---------------- */
+
   const handleFinishRoute = async () => {
     if (!driver?.id) {
-      console.error("No driver selected");
       toast.error("No driver selected");
       return;
     }
-    
+
     if (!selectedDay || selectedStops.length === 0) {
       toast.error("Please select a day and at least one stop");
       return;
     }
 
     setLoading(true);
-    const stopIds = selectedStops.map((stop) => stop.id);
 
-    const { error } = await supabase.from("routes").insert([
-      {
+    // 1️⃣ Create route
+    const { data: route, error: routeError } = await supabase
+      .from("routes")
+      .insert({
         driver_id: driver.id,
         day_of_week: selectedDay,
-        stops: stopIds,
-      },
-    ]);
+      })
+      .select()
+      .single();
+
+    if (routeError) {
+      console.error(routeError);
+      toast.error("Failed to create route");
+      setLoading(false);
+      return;
+    }
+
+    // 2️⃣ Insert route_stops
+    const routeStopsPayload = selectedStops.map((stop, index) => ({
+      route_id: route.id,
+      stop_id: stop.stop_id,
+      visit_frequency: stop.visit_frequency,
+      week_type: stop.week_type,
+      sort_order: index,
+    }));
+
+    const { error: routeStopsError } = await supabase
+      .from("route_stops")
+      .insert(routeStopsPayload);
 
     setLoading(false);
 
-    if (error) {
-      console.error(error);
-      toast.error("Failed to create route");
-    } else {
-      toast.success("Route created successfully!");
-      onRouteCreated?.();
-      setSelectedStops([]);
-      setSelectedDay("");
-      setOpen(false);
+    if (routeStopsError) {
+      console.error(routeStopsError);
+      toast.error("Route created, but failed to add stops");
+      return;
     }
+
+    toast.success("Route created successfully!");
+    onRouteCreated?.();
+    setSelectedStops([]);
+    setSelectedDay("");
+    setOpen(false);
   };
+
+  /* ---------------- RENDER ---------------- */
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="w-max">
         <DialogHeader>
           <DialogTitle>Create New Route for {driver?.full_name}</DialogTitle>
         </DialogHeader>
@@ -112,9 +171,9 @@ export default function CreateRouteModal({ open, setOpen, driver, onRouteCreated
             </Select>
           </div>
 
-          {/* Two-column stop selector */}
+          {/* Stops */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Left column - available stops */}
+            {/* All stops */}
             <Card className="p-4 max-h-[400px] overflow-y-auto">
               <h3 className="font-semibold mb-2">All Stops</h3>
               <ul className="space-y-2">
@@ -136,45 +195,82 @@ export default function CreateRouteModal({ open, setOpen, driver, onRouteCreated
               </ul>
             </Card>
 
-            {/* Right column - selected stops */}
+            {/* Selected stops */}
             <Card className="p-4 max-h-[400px] overflow-y-auto">
-              <h3 className="font-semibold mb-2">Selected Stops (Route Order)</h3>
+              <h3 className="font-semibold mb-2">Route Stops</h3>
+
               {selectedStops.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No stops selected yet.</p>
+                <p className="text-sm text-muted-foreground">
+                  No stops selected yet.
+                </p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {selectedStops.map((stop, index) => (
                     <li
-                      key={stop.id}
-                      className="flex justify-between items-center bg-secondary rounded-md px-3 py-2"
+                      key={stop.stop_id}
+                      className="bg-secondary rounded-md p-3 space-y-2"
                     >
-                      <span>
-                        {index + 1}. {stop.name}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => moveStop(index, -1)}
-                          disabled={index === 0}
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">
+                          {index + 1}. {stop.name}
+                        </span>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => moveStop(index, -1)}
+                            disabled={index === 0}
+                          >
+                            <ArrowUp className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => moveStop(index, 1)}
+                            disabled={index === selectedStops.length - 1}
+                          >
+                            <ArrowDown className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            onClick={() => handleRemoveStop(stop.stop_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Frequency controls */}
+                      <div className="flex gap-2">
+                        <Select
+                          value={stop.visit_frequency}
+                          onValueChange={(val) => updateFrequency(index, val)}
                         >
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => moveStop(index, 1)}
-                          disabled={index === selectedStops.length - 1}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="destructive"
-                          onClick={() => handleRemoveStop(stop.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="biweekly">Biweekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {stop.visit_frequency === "biweekly" && (
+                          <Select
+                            value={stop.week_type}
+                            onValueChange={(val) => updateWeekType(index, val)}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="A">Week A</SelectItem>
+                              <SelectItem value="B">Week B</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                     </li>
                   ))}
@@ -196,4 +292,3 @@ export default function CreateRouteModal({ open, setOpen, driver, onRouteCreated
     </Dialog>
   );
 }
-

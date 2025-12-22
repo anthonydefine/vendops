@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import supabase from "../supabaseClient";
 
-import { Button } from "../../components/ui/button";
-import { Avatar } from "radix-ui";
-
 import StopCard from "./components/StopCard";
 import IssueModal from "./components/IssueModal";
 import AddNoteModal from "./components/AddNoteModal";
@@ -16,48 +13,61 @@ import Sidebar from "./components/Sidebar";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
-  const [todayRoute, setTodayRoute] = useState(null);
   const [todayStops, setTodayStops] = useState([]);
   const [stopMeta, setStopMeta] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Modal states
+  // Modal state
   const [activeIssueStop, setActiveIssueStop] = useState(null);
   const [activeNoteStop, setActiveNoteStop] = useState(null);
   const [activePhotoStop, setActivePhotoStop] = useState(null);
   const [activePhotoViewUrl, setActivePhotoViewUrl] = useState(null);
 
+  const today = new Date();
+  const todayName = today.toLocaleDateString("en-US", { weekday: "long" });
+  const todayISO = today.toISOString().split("T")[0];
 
-  const currentDay = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-  });
-
-  function getInitials(fullName) {
-    // Trim leading/trailing spaces and split the full name by spaces
-    const nameParts = fullName.trim().split(' ');
-
-    // Get the first initial from the first name part
-    const firstInitial = nameParts[0].charAt(0).toUpperCase();
-
-    // Get the last initial from the last name part
-    // Handle cases with only a first name or multiple middle names
-    let lastInitial = '';
-    if (nameParts.length > 1) {
-      lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase();
-    }
-
-    return firstInitial + lastInitial;
+  // ---------- Helpers ----------
+  function getWeekType(startDate) {
+    const start = new Date(startDate);
+    const diffWeeks = Math.floor(
+      (today - start) / (1000 * 60 * 60 * 24 * 7)
+    );
+    return diffWeeks % 2 === 0 ? "A" : "B";
   }
 
-  // Logout
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
+  const refreshStopMeta = async (stopId) => {
+    const [{ data: issues }, { data: notes }, { data: photos }] =
+      await Promise.all([
+        supabase.from("issues").select("*").eq("stop_id", stopId),
+        supabase.from("stop_notes").select("*").eq("stop_id", stopId),
+        supabase
+          .from("machine_photos")
+          .select("*")
+          .eq("stop_id", stopId)
+          .order("created_at", { ascending: false })
+          .limit(1),
+      ]);
+
+    setStopMeta((prev) => ({
+      ...prev,
+      [stopId]: {
+        hasIssues: issues?.length > 0,
+        hasNotes: notes?.length > 0,
+        hasPhotos: photos?.length > 0,
+        latestPhoto: photos?.[0]?.photo_url || null,
+        issues,
+        notes,
+        photos,
+      },
+    }));
   };
 
-  // Load driver + route
+  // ---------- Load Driver + Stops ----------
   useEffect(() => {
-    const loadDriver = async () => {
+    const load = async () => {
+      setLoading(true);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -71,159 +81,78 @@ export default function DriverPage() {
 
       setDriver(profile);
 
-      const { data: routeData } = await supabase
-        .from("routes")
+      const { data: stops, error } = await supabase
+        .from("stops")
         .select("*")
-        .eq("driver_id", user.id);
+        .eq("driver_id", user.id)
+        .contains("days_of_week", [todayName])
+        .lte("start_date", todayISO);
 
-      const todaysRoute = routeData?.find(
-        (r) => r.day_of_week === currentDay
-      );
+      if (error) {
+        console.error(error);
+        setLoading(false);
+        return;
+      }
 
-      setTodayRoute(todaysRoute || null);
+      const filteredStops = stops.filter((stop) => {
+        if (stop.frequency === "weekly") return true;
+        if (stop.frequency === "biweekly") {
+          return getWeekType(stop.start_date) === stop.week_type;
+        }
+        return false;
+      });
+
+      setTodayStops(filteredStops);
+
+      filteredStops.forEach((stop) => refreshStopMeta(stop.id));
+
       setLoading(false);
     };
 
-    loadDriver();
-  }, [currentDay]);
-
-  // Load the STOP OBJECTS
-  useEffect(() => {
-    if (!todayRoute?.stops?.length) {
-      setTodayStops([]);
-      return;
-    }
-
-    const loadStops = async () => {
-      const stopIds = todayRoute.stops.map((s) => s.toString());
-
-      const { data } = await supabase
-        .from("stops")
-        .select("*")
-        .in("id", stopIds);
-
-      const sorted = stopIds
-        .map((id) => data.find((s) => s.id === id))
-        .filter(Boolean);
-
-      setTodayStops(sorted);
-    };
-
-    loadStops();
-  }, [todayRoute]);
-
-  // Load per-stop metadata (issues, notes, photos)
-  useEffect(() => {
-    if (todayStops.length === 0) return;
-
-    const fetchMeta = async () => {
-      const meta = {};
-
-      for (const stop of todayStops) {
-        const stopId = stop.id;
-
-        const { data: issues } = await supabase
-          .from("issues")
-          .select("*")
-          .eq("stop_id", stopId);
-
-        const { data: notes } = await supabase
-          .from("stop_notes")
-          .select("*")
-          .eq("stop_id", stopId);
-
-        const { data: photos } = await supabase
-          .from("machine_photos")
-          .select('*')
-          .eq("stop_id", stopId)
-
-        meta[stopId] = {
-          hasIssues: issues?.length > 0,
-          hasNotes: notes?.length > 0,
-          hasPhotos: photos?.length > 0,
-          latestPhoto: photos?.[0]?.photo_url || null,
-          issues,
-          notes,
-          photos,
-        };
-      }
-
-      setStopMeta(meta);
-    };
-
-    fetchMeta();
-  }, [todayStops]);
-
-  // 🔥 When a photo is uploaded, update only that stop's metadata
-  const handlePhotoUploaded = async (stop) => {
-    const stopId = stop.id;
-
-    const { data: photos } = await supabase
-      .from("machine_photos")
-      .select("photo_url, created_at")
-      .eq("stop_id", stopId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-
-    setStopMeta((prev) => ({
-      ...prev,
-      [stopId]: {
-        ...prev[stopId],
-        hasPhotos: !!photos?.length,
-        latestPhoto: photos?.[0]?.photo_url || null,
-        photos,
-      },
-    }));
-  };
+    load();
+  }, []);
 
   if (loading) return <p className="p-6">Loading...</p>;
 
+  // ---------- Render ----------
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          Welcome, {driver?.full_name || "Driver"}
-        </h1>
+        <h1 className="text-2xl font-bold">VendOps</h1>
         <DriverAvatar driver={driver} />
       </div>
 
-      <p>Today is: <strong>{currentDay}</strong></p>
+      <p>
+        Today is: <strong>{todayName}</strong>
+      </p>
 
-      {/* NO ROUTE */}
-      {!todayRoute && <p>No route assigned for today.</p>}
-
-      {/* ROUTE BUT NO STOPS */}
-      {todayRoute && todayStops.length === 0 && (
-        <p>No stops for today's route.</p>
+      {todayStops.length === 0 && (
+        <p className="text-muted-foreground">
+          No stops assigned for today.
+        </p>
       )}
+
       <div className="grid grid-cols-3 gap-2">
-        <div className="col-span-3 md:col-span-2">
-          {/* ROUTE WITH STOPS */}
-          {todayRoute && todayStops.length > 0 && (
-            <div className="space-y-4">
-              {todayStops.map((stop) => (
-                <StopCard
-                  key={stop.id}
-                  stop={stop}
-                  meta={stopMeta[stop.id]}
-                  onReportIssue={(s) => setActiveIssueStop(s)}
-                  onAddNote={(s) => setActiveNoteStop(s)}
-                  onUploadPhoto={(s) => setActivePhotoStop(s)}
-                  onViewPhoto={(photoUrl) => setActivePhotoViewUrl(photoUrl)}
-                />
-              ))}
-            </div>
-          )}
+        <div className="col-span-3 md:col-span-2 space-y-4">
+          {todayStops.map((stop) => (
+            <StopCard
+              key={stop.id}
+              stop={stop}
+              meta={stopMeta[stop.id]}
+              onReportIssue={() => setActiveIssueStop(stop)}
+              onAddNote={() => setActiveNoteStop(stop)}
+              onUploadPhoto={() => setActivePhotoStop(stop)}
+              onViewPhoto={(url) => setActivePhotoViewUrl(url)}
+            />
+          ))}
         </div>
+
         <div className="hidden md:block">
           <Sidebar />
         </div>
-
-        
       </div>
-      
 
-      {/* MODALS */}
+      {/* --- Modals --- */}
       {activeIssueStop && (
         <IssueModal
           stop={activeIssueStop}
@@ -245,7 +174,7 @@ export default function DriverPage() {
         <UploadPhotoModal
           stop={activePhotoStop}
           driver={driver}
-          onUploaded={() => handlePhotoUploaded(activePhotoStop)}
+          onUploaded={() => refreshStopMeta(activePhotoStop.id)}
           onClose={() => setActivePhotoStop(null)}
         />
       )}
@@ -259,4 +188,5 @@ export default function DriverPage() {
     </div>
   );
 }
+
 

@@ -6,6 +6,7 @@ import supabase from '../supabaseClient'
 import ManageDashboard from './components/ManageDashboard'
 import ManageDrivers from './components/ManageDrivers'
 import ManageMaintenance from './components/ManageMaintenance'
+import ManageStops from './components/ManageStops'
 import PushSubscribe from '../components/PushSubscribe'
 
 function LogoutButton() {
@@ -29,7 +30,7 @@ export default function AdminDashboard() {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [activeTab, setActiveTab] = useState('dashboard')
-  const tabs = ['dashboard', 'inventory', 'maintenance', 'drivers']
+  const tabs = ['dashboard', 'inventory', 'maintenance', 'drivers', 'stops']
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -84,6 +85,7 @@ export default function AdminDashboard() {
           {activeTab === 'maintenance' && <MaintenanceTab />}
           {activeTab === 'drivers' && <DriversTab />}
           {activeTab === 'inventory' && <p>Inventory coming soon...</p>}
+          {activeTab === 'stops' && <ManageStops />}
         </main>
       </div>
     </>
