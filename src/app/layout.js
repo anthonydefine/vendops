@@ -1,6 +1,8 @@
 import './globals.css'
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { ThemeProvider } from './ThemeProvider';
+
 
 import { Toaster } from 'sonner';
 
@@ -23,16 +25,18 @@ export default function RootLayout({ children }) {
   
 
   return (
-    <html lang="en">
-      <head>
-        <link rel="manifest" href="./manifest.json" />
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-        <Toaster richColors position="top-right" />
-      </body>
-    </html>
+      <html lang="en">
+        <head>
+          <link rel="manifest" href="./manifest.json" />
+        </head>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            <ThemeProvider>
+              {children}
+            </ThemeProvider>?
+            <Toaster richColors position="top-right" />
+          </body>
+      </html>
   );
 }

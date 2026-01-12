@@ -8,6 +8,9 @@ import ManageDrivers from './components/ManageDrivers'
 import ManageMaintenance from './components/ManageMaintenance'
 import ManageStops from './components/ManageStops'
 import PushSubscribe from '../components/PushSubscribe'
+import ThemeToggle from '../components/ThemeToggle'
+
+import { useTheme } from '../ThemeProvider'
 
 function LogoutButton() {
   const router = useRouter()
@@ -59,7 +62,10 @@ export default function AdminDashboard() {
             <h1 className="text-xl font-bold">{profile.full_name}</h1>
             <p className="text-sm text-gray-500">{profile.role}</p>
           </div>
-          <LogoutButton />
+          <div className='flex items-center gap-6'>
+            <ThemeToggle />
+            <LogoutButton />
+          </div>
         </header>
 
         {/* Tabs */}

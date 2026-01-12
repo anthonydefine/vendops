@@ -4,7 +4,7 @@ import { useState } from "react";
 import supabase from '../../supabaseClient';
 import { Button } from "../../../components/ui/button";
 
-export default function IssueModal({ stop, driverId, driverName, onClose }) {
+export default function IssueModal({ stop, driverId, driverName, onClose, machine }) {
   const [description, setDescription] = useState("");
   const [urgency, setUrgency] = useState("low");
 
@@ -14,6 +14,7 @@ export default function IssueModal({ stop, driverId, driverName, onClose }) {
     await supabase.from("issues").insert({
       stop_id: stop.id,
       driver_id: driverId,
+      machine_type: machine,
       urgency,
       description,
     });

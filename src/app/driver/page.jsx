@@ -10,6 +10,7 @@ import UploadPhotoModal from "./components/UploadPhotoModal";
 import ViewPhotoModal from "./components/ViewPhotoModal";
 import DriverAvatar from "./components/DriverAvatar";
 import Sidebar from "./components/Sidebar";
+import ThemeToggle from "../components/ThemeToggle";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
@@ -119,7 +120,10 @@ export default function DriverPage() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">VendOps</h1>
-        <DriverAvatar driver={driver} />
+        <div>
+          <ThemeToggle />
+          <DriverAvatar driver={driver} />
+        </div>
       </div>
 
       <p>
@@ -139,9 +143,9 @@ export default function DriverPage() {
               key={stop.id}
               stop={stop}
               meta={stopMeta[stop.id]}
-              onReportIssue={() => setActiveIssueStop(stop)}
-              onAddNote={() => setActiveNoteStop(stop)}
-              onUploadPhoto={() => setActivePhotoStop(stop)}
+              onReportIssue={(machine) => setActiveIssueStop({ stop, machine })}
+              onAddNote={(machine) => setActiveNoteStop({ stop, machine })}
+              onUploadPhoto={(machine) => setActivePhotoStop({ stop, machine })}
               onViewPhoto={(url) => setActivePhotoViewUrl(url)}
             />
           ))}
@@ -155,7 +159,8 @@ export default function DriverPage() {
       {/* --- Modals --- */}
       {activeIssueStop && (
         <IssueModal
-          stop={activeIssueStop}
+          stop={activeIssueStop?.stop}
+          machine={activeIssueStop?.machine}
           driverId={driver?.id}
           driverName={driver?.full_name}
           onClose={() => setActiveIssueStop(null)}
