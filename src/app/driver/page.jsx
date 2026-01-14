@@ -38,30 +38,59 @@ export default function DriverPage() {
   }
 
   const refreshStopMeta = async (stopId) => {
-    const [{ data: issues }, { data: notes }, { data: photos }] =
-      await Promise.all([
+    console.log("Refreshing stop meta for:", stopId);
+
+    try {
+      const [{ data: issues, error: issuesError },
+            { data: notes, error: notesError },
+            { data: photos, error: photosError }] = await Promise.all([
         supabase.from("issues").select("*").eq("stop_id", stopId),
-        supabase.from("stop_notes").select("*").eq("stop_id", stopId),
+        supabase.from("notes").select("*").eq("stop_id", stopId),
         supabase
           .from("machine_photos")
           .select("*")
           .eq("stop_id", stopId)
-          .order("created_at", { ascending: false })
-          .limit(1),
+          .order("created_at", { ascending: false }),
       ]);
 
-    setStopMeta((prev) => ({
-      ...prev,
-      [stopId]: {
-        hasIssues: issues?.length > 0,
-        hasNotes: notes?.length > 0,
-        hasPhotos: photos?.length > 0,
-        latestPhoto: photos?.[0]?.photo_url || null,
-        issues,
-        notes,
-        photos,
-      },
-    }));
+      if (issuesError) throw issuesError;
+      if (notesError) throw notesError;
+      if (photosError) throw photosError;
+
+      // Group issues and notes by machine
+      const issuesByMachine = {};
+      issues?.forEach((i) => {
+        const type = i.machine_type || "unknown";
+        if (!issuesByMachine[type]) issuesByMachine[type] = [];
+        issuesByMachine[type].push(i);
+      });
+
+      const notesByMachine = {};
+      notes?.forEach((n) => {
+        const type = n.machine_type || "unknown";
+        if (!notesByMachine[type]) notesByMachine[type] = [];
+        notesByMachine[type].push(n);
+      });
+
+      // Group latest photo by machine
+      const photosByMachine = {};
+      photos?.forEach((p) => {
+        if (!photosByMachine[p.machine_type]) {
+          photosByMachine[p.machine_type] = p.photo_url;
+        }
+      });
+
+      setStopMeta((prev) => ({
+        ...prev,
+        [stopId]: {
+          issuesByMachine,
+          notesByMachine,
+          photosByMachine,
+        },
+      }));
+    } catch (err) {
+      console.error("Error refreshing stop meta:", err.message || err);
+    }
   };
 
   // ---------- Load Driver + Stops ----------
@@ -121,7 +150,6 @@ export default function DriverPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">VendOps</h1>
         <div>
-          <ThemeToggle />
           <DriverAvatar driver={driver} />
         </div>
       </div>
@@ -163,7 +191,18 @@ export default function DriverPage() {
           machine={activeIssueStop?.machine}
           driverId={driver?.id}
           driverName={driver?.full_name}
-          onClose={() => setActiveIssueStop(null)}
+          onClose={(newIssue) => {
+            if (newIssue) {
+              setStopMeta((prev) => ({
+                ...prev,
+                [newIssue.stop_id]: {
+                  ...prev[newIssue.stop_id],
+                  issues: [...(prev[newIssue.stop_id]?.issues || []), newIssue],
+                },
+              }));
+            }
+            setActiveIssueStop(null);
+          }}
         />
       )}
 
@@ -177,9 +216,10 @@ export default function DriverPage() {
 
       {activePhotoStop && (
         <UploadPhotoModal
-          stop={activePhotoStop}
+          stop={activePhotoStop?.stop}
+          machine={activePhotoStop?.machine}
           driver={driver}
-          onUploaded={() => refreshStopMeta(activePhotoStop.id)}
+          onUploaded={() => refreshStopMeta(activePhotoStop.stop.id)}
           onClose={() => setActivePhotoStop(null)}
         />
       )}

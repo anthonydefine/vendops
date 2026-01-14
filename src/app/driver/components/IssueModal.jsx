@@ -11,17 +11,24 @@ export default function IssueModal({ stop, driverId, driverName, onClose, machin
   const submitIssue = async () => {
     if (!description.trim()) return;
 
-    await supabase.from("issues").insert({
-      stop_id: stop.id,
-      driver_id: driverId,
-      machine_type: machine,
-      urgency,
-      description,
-    });
+    const { data, error } = await supabase
+      .from("issues")
+      .insert({
+        stop_id: stop.id,
+        driver_id: driverId,
+        machine_type: machine,
+        urgency,
+        description,
+      })
+      .select()
+      .single();
 
-    alert("Issue reported successfully and admin notified!");
+    if (error) {
+      alert("Failed to submit issue");
+      return;
+    }
 
-    onClose();
+    onClose(data); // 🔥 pass new issue back
   };
 
   return (

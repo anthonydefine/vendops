@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "../../../components/ui/button";
 import supabase from "../../../app/supabaseClient";
 
-export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) {
+export default function UploadPhotoModal({ stop, machine, driver, onClose, onUploaded }) {
   const [uploading, setUploading] = useState(false);
 
   const handleFileChange = async (e) => {
@@ -42,7 +42,9 @@ export default function UploadPhotoModal({ stop, driver, onClose, onUploaded }) 
         .insert({
           stop_id: stop.id,
           driver_id: driver.id,
+          machine_type: machine.machine,
           photo_url: publicUrl,
+          created_at: new Date().toISOString(),
         });
 
       if (dbError) throw dbError;

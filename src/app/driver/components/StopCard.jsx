@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useMemo, forwardRef } from "react";
+import React, { useState, forwardRef } from "react";
 import { Button } from "../../../components/ui/button";
-import { CameraIcon } from "lucide-react";
-import { MessageSquareMore, MessageSquareWarning } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible";
 
-// Simple emoji icons per machine
+// Emoji icons for machines
 const MACHINE_ICONS = {
   snack: "🍫",
   soda: "🥤",
@@ -27,127 +25,109 @@ export default function StopCard({
   onViewPhoto,
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeMachineView, setActiveMachineView] = useState(null); // single machine issue view
+  const [issueViewMachine, setIssueViewMachine] = useState(null);
 
-  // Stable refs for scrolling
-  const machineRefs = useMemo(() => {
-    const refs = {};
-    stop.machines?.forEach((m) => {
-      refs[m] = React.createRef();
-    });
-    return refs;
-  }, [stop.machines]);
+  // Use the meta objects directly — do NOT try to regroup
+  const issuesByMachine = meta?.issuesByMachine || {};
+  const notesByMachine = meta?.notesByMachine || {};
+  const photosByMachine = meta?.photosByMachine || {};
 
-  // Group issues and notes by machine
-  const issuesByMachine = useMemo(() => {
-    return (meta?.issues || []).reduce((acc, i) => {
-      const type = i.machine_type || "unknown";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(i);
-      return acc;
-    }, {});
-  }, [meta?.issues]);
+  // --- FULL CARD VIEW FOR SINGLE MACHINE ISSUES ---
+  if (issueViewMachine) {
+    const issues = issuesByMachine[issueViewMachine] || [];
 
-  const notesByMachine = useMemo(() => {
-    return (meta?.notes || []).reduce((acc, n) => {
-      const type = n.machine_type || "unknown";
-      if (!acc[type]) acc[type] = [];
-      acc[type].push(n);
-      return acc;
-    }, {});
-  }, [meta?.notes]);
-
-  // --- Render single machine view if activeMachineView is set ---
-  if (activeMachineView) {
-    const machine = activeMachineView;
     return (
-      <div className="relative border-2 shadow-xl rounded-lg p-4">
-        <div className="absolute top-2 right-2">
-          <Button size="small" variant="ghost" onClick={() => setActiveMachineView(null)}>
-            ← Go Back
+      <div className="relative border-2 rounded-lg p-4 shadow-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-bold">
+            {stop.name} — {issueViewMachine.toUpperCase()} Issues
+          </h2>
+          <Button
+            size="small"
+            variant="ghost"
+            onClick={() => setIssueViewMachine(null)}
+          >
+            ← Back
           </Button>
         </div>
-        <MachineRow
-          stop={stop}
-          machine={machine}
-          issues={issuesByMachine[machine] || []}
-          notes={notesByMachine[machine] || []}
-          latestPhoto={machine === "snack" ? meta?.latestPhoto : null}
-          onAddNote={onAddNote}
-          onReportIssue={onReportIssue}
-          onUploadPhoto={onUploadPhoto}
-          onViewPhoto={onViewPhoto}
-        />
+
+        {issues.length === 0 ? (
+          <p className="text-gray-500">No issues reported.</p>
+        ) : (
+          <ul className="space-y-3">
+            {issues.map((issue) => (
+              <li key={issue.id} className="border rounded-lg p-3">
+                <div className="font-medium">
+                  Urgency: <span className="uppercase">{issue.urgency}</span>
+                </div>
+                <p className="text-sm text-gray-700">{issue.description}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     );
   }
 
-  // --- Normal stop card view ---
+  // --- NORMAL STOP CARD VIEW ---
   return (
-    <div className="relative border-2 shadow-xl rounded-lg p-4 flex flex-col gap-2 hover:border-blue-500">
-      {/* Stop info */}
+    <div className="relative border-2 shadow-xl rounded-lg p-4 flex flex-col gap-3 hover:border-blue-500">
+      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h2 className="font-semibold text-lg">{stop.name}</h2>
           {stop.address && <p className="text-sm text-gray-500">{stop.address}</p>}
         </div>
 
-        {/* Top-right machine icons */}
+        {/* Machine icons */}
         <div className="flex gap-2">
           {stop.machines?.map((machine) => {
-            const hasIssues = (issuesByMachine[machine] || []).length > 0;
-            const hasNotes = (notesByMachine[machine] || []).length > 0;
-            const icon = MACHINE_ICONS[machine] || MACHINE_ICONS.unknown;
+            const hasIssues = (issuesByMachine[machine]?.length || 0) > 0;
+            const hasNotes = (notesByMachine[machine]?.length || 0) > 0;
+            const latestPhoto = photosByMachine[machine] || null;
 
             return (
-              <span
+              <button
                 key={machine}
-                className="relative cursor-pointer text-xl"
+                className="relative text-xl"
                 onClick={() => {
                   if (hasIssues) {
-                    setActiveMachineView(machine);
+                    setIssueViewMachine(machine);
                   } else {
                     setIsOpen(true);
-                    setTimeout(() => {
-                      machineRefs[machine]?.current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                      });
-                    }, 100);
                   }
                 }}
               >
-                {icon}
+                {MACHINE_ICONS[machine] || MACHINE_ICONS.unknown}
+
                 {(hasIssues || hasNotes) && (
-                  <span className="absolute -top-2 -right-2 text-sm">
-                    {hasIssues && "⚠️"}
-                    {hasNotes && "📝"}
+                  <span className="absolute -top-2 -right-2 text-xs">
+                    {hasIssues ? "⚠️" : hasNotes ? "📝" : null}
                   </span>
                 )}
-              </span>
+              </button>
             );
           })}
         </div>
       </div>
 
-      {/* Collapsible for machine details */}
+      {/* Collapsible machines */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger>
-          <span className="p-2 border rounded-lg hover:bg-slate-50 cursor-pointer mt-2 inline-block">
+          <span className="inline-block p-2 border rounded-lg hover:bg-slate-50 cursor-pointer mt-2">
             {isOpen ? "Hide Machines" : "View Machines"}
           </span>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="mt-2 space-y-2">
+        <CollapsibleContent className="mt-3 space-y-2">
           {stop.machines?.map((machine) => (
             <MachineRow
               key={machine}
-              ref={machineRefs[machine]}
               stop={stop}
               machine={machine}
               issues={issuesByMachine[machine] || []}
               notes={notesByMachine[machine] || []}
-              latestPhoto={machine === "snack" ? meta?.latestPhoto : null}
+              latestPhoto={photosByMachine[machine] || null}
               onAddNote={onAddNote}
               onReportIssue={onReportIssue}
               onUploadPhoto={onUploadPhoto}
@@ -160,39 +140,56 @@ export default function StopCard({
   );
 }
 
-// MachineRow forwards ref for scrolling
+/** -----------------------------
+ * MACHINE ROW
+ * ----------------------------- */
 const MachineRow = forwardRef(function MachineRow(
-  { stop, machine, issues, notes, latestPhoto, onAddNote, onReportIssue, onUploadPhoto, onViewPhoto },
+  {
+    stop,
+    machine,
+    issues,
+    notes,
+    latestPhoto,
+    onAddNote,
+    onReportIssue,
+    onUploadPhoto,
+    onViewPhoto,
+  },
   ref
 ) {
   return (
     <div
       ref={ref}
-      className="border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2"
+      className="border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
     >
-      <div className="flex flex-col md:flex-row md:items-center gap-2">
+      <div className="flex items-center gap-2">
         <span className="text-xl">{MACHINE_ICONS[machine] || "🔧"}</span>
         <span className="font-semibold capitalize">{machine}</span>
       </div>
 
       <div className="flex gap-2 flex-wrap">
-        {/* Report Issue button always says 'Report Issue' */}
-        <Button size="small" variant="ghost" onClick={() => onReportIssue(machine)}>
+        <Button
+          size="small"
+          variant="ghost"
+          onClick={() => onReportIssue({ stop, machine })}
+        >
           Report Issue
         </Button>
 
-        {/* Notes button */}
-        <Button size="small" variant="ghost" onClick={() => onAddNote(machine)}>
+        <Button
+          size="small"
+          variant="ghost"
+          onClick={() => onAddNote({ stop, machine })}
+        >
           Add Note
         </Button>
 
-        {/* Snack machine photo */}
         {machine === "snack" && (
           <Button
             size="small"
             variant="outline"
             onClick={() =>
-              latestPhoto ? onViewPhoto(latestPhoto) : onUploadPhoto(machine)
+              latestPhoto ? onViewPhoto(latestPhoto) : onUploadPhoto({ stop, machine })
             }
           >
             📸 {latestPhoto ? "View Photo" : "Upload Photo"}
@@ -202,6 +199,9 @@ const MachineRow = forwardRef(function MachineRow(
     </div>
   );
 });
+
+
+
 
 
 
