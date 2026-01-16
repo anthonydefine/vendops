@@ -11,12 +11,14 @@ export default function IssueModal({ stop, driverId, driverName, onClose, machin
   const submitIssue = async () => {
     if (!description.trim()) return;
 
+    console.log(machine)
+
     const { data, error } = await supabase
       .from("issues")
       .insert({
         stop_id: stop.id,
         driver_id: driverId,
-        machine_type: machine,
+        machine_type: machine.machine,
         urgency,
         description,
       })

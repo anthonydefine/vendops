@@ -10,7 +10,6 @@ import UploadPhotoModal from "./components/UploadPhotoModal";
 import ViewPhotoModal from "./components/ViewPhotoModal";
 import DriverAvatar from "./components/DriverAvatar";
 import Sidebar from "./components/Sidebar";
-import ThemeToggle from "../components/ThemeToggle";
 
 export default function DriverPage() {
   const [driver, setDriver] = useState(null);
@@ -18,17 +17,19 @@ export default function DriverPage() {
   const [stopMeta, setStopMeta] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Modal state
-  const [activeIssueStop, setActiveIssueStop] = useState(null);
-  const [activeNoteStop, setActiveNoteStop] = useState(null);
+  // Modals
+  const [activeIssue, setActiveIssue] = useState(null);
+  const [activeNote, setActiveNote] = useState(null);
   const [activePhotoStop, setActivePhotoStop] = useState(null);
-  const [activePhotoViewUrl, setActivePhotoViewUrl] = useState(null);
+  const [activePhotoUrl, setActivePhotoUrl] = useState(null);
 
   const today = new Date();
   const todayName = today.toLocaleDateString("en-US", { weekday: "long" });
   const todayISO = today.toISOString().split("T")[0];
 
-  // ---------- Helpers ----------
+  // -----------------------------
+  // Helpers
+  // -----------------------------
   function getWeekType(startDate) {
     const start = new Date(startDate);
     const diffWeeks = Math.floor(
@@ -37,27 +38,23 @@ export default function DriverPage() {
     return diffWeeks % 2 === 0 ? "A" : "B";
   }
 
+  // -----------------------------
+  // Refresh stop meta
+  // -----------------------------
   const refreshStopMeta = async (stopId) => {
-    console.log("Refreshing stop meta for:", stopId);
-
     try {
-      const [{ data: issues, error: issuesError },
-            { data: notes, error: notesError },
-            { data: photos, error: photosError }] = await Promise.all([
-        supabase.from("issues").select("*").eq("stop_id", stopId),
-        supabase.from("notes").select("*").eq("stop_id", stopId),
-        supabase
-          .from("machine_photos")
-          .select("*")
-          .eq("stop_id", stopId)
-          .order("created_at", { ascending: false }),
-      ]);
+      const [{ data: issues }, { data: notes }, { data: photos }] =
+        await Promise.all([
+          supabase.from("issues").select("*").eq("stop_id", stopId),
+          supabase.from("notes").select("*").eq("stop_id", stopId),
+          supabase
+            .from("machine_photos")
+            .select("*")
+            .eq("stop_id", stopId)
+            .order("created_at", { ascending: false }),
+        ]);
 
-      if (issuesError) throw issuesError;
-      if (notesError) throw notesError;
-      if (photosError) throw photosError;
-
-      // Group issues and notes by machine
+      // group issues by machine
       const issuesByMachine = {};
       issues?.forEach((i) => {
         const type = i.machine_type || "unknown";
@@ -65,6 +62,7 @@ export default function DriverPage() {
         issuesByMachine[type].push(i);
       });
 
+      // group notes by machine
       const notesByMachine = {};
       notes?.forEach((n) => {
         const type = n.machine_type || "unknown";
@@ -72,28 +70,23 @@ export default function DriverPage() {
         notesByMachine[type].push(n);
       });
 
-      // Group latest photo by machine
-      const photosByMachine = {};
-      photos?.forEach((p) => {
-        if (!photosByMachine[p.machine_type]) {
-          photosByMachine[p.machine_type] = p.photo_url;
-        }
-      });
-
       setStopMeta((prev) => ({
         ...prev,
         [stopId]: {
           issuesByMachine,
           notesByMachine,
-          photosByMachine,
+          photos, // keep full list for future carousel
+          latestPhoto: photos?.[0]?.photo_url || null,
         },
       }));
     } catch (err) {
-      console.error("Error refreshing stop meta:", err.message || err);
+      console.error("refreshStopMeta error:", err);
     }
   };
 
-  // ---------- Load Driver + Stops ----------
+  // -----------------------------
+  // Load driver + stops
+  // -----------------------------
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -111,18 +104,12 @@ export default function DriverPage() {
 
       setDriver(profile);
 
-      const { data: stops, error } = await supabase
+      const { data: stops } = await supabase
         .from("stops")
         .select("*")
         .eq("driver_id", user.id)
         .contains("days_of_week", [todayName])
         .lte("start_date", todayISO);
-
-      if (error) {
-        console.error(error);
-        setLoading(false);
-        return;
-      }
 
       const filteredStops = stops.filter((stop) => {
         if (stop.frequency === "weekly") return true;
@@ -133,8 +120,7 @@ export default function DriverPage() {
       });
 
       setTodayStops(filteredStops);
-
-      filteredStops.forEach((stop) => refreshStopMeta(stop.id));
+      filteredStops.forEach((s) => refreshStopMeta(s.id));
 
       setLoading(false);
     };
@@ -144,25 +130,19 @@ export default function DriverPage() {
 
   if (loading) return <p className="p-6">Loading...</p>;
 
-  // ---------- Render ----------
+  // -----------------------------
+  // Render
+  // -----------------------------
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">VendOps</h1>
-        <div>
-          <DriverAvatar driver={driver} />
-        </div>
+        <DriverAvatar driver={driver} />
       </div>
 
       <p>
         Today is: <strong>{todayName}</strong>
       </p>
-
-      {todayStops.length === 0 && (
-        <p className="text-muted-foreground">
-          No stops assigned for today.
-        </p>
-      )}
 
       <div className="grid grid-cols-3 gap-2">
         <div className="col-span-3 md:col-span-2 space-y-4">
@@ -173,8 +153,11 @@ export default function DriverPage() {
               meta={stopMeta[stop.id]}
               onReportIssue={(machine) => setActiveIssueStop({ stop, machine })}
               onAddNote={(machine) => setActiveNoteStop({ stop, machine })}
-              onUploadPhoto={(machine) => setActivePhotoStop({ stop, machine })}
-              onViewPhoto={(url) => setActivePhotoViewUrl(url)}
+              onUploadPhoto={(stop) => setActivePhotoStop(stop)}
+              onViewPhoto={(stop, photoUrl) => {
+                setActivePhotoStop(stop);  // set stop for modal context
+                setActivePhotoUrl(photoUrl);
+              }}
             />
           ))}
         </div>
@@ -184,50 +167,48 @@ export default function DriverPage() {
         </div>
       </div>
 
-      {/* --- Modals --- */}
-      {activeIssueStop && (
+      {/* ---------------- Modals ---------------- */}
+
+      {activeIssue && (
         <IssueModal
-          stop={activeIssueStop?.stop}
-          machine={activeIssueStop?.machine}
-          driverId={driver?.id}
-          driverName={driver?.full_name}
-          onClose={(newIssue) => {
-            if (newIssue) {
-              setStopMeta((prev) => ({
-                ...prev,
-                [newIssue.stop_id]: {
-                  ...prev[newIssue.stop_id],
-                  issues: [...(prev[newIssue.stop_id]?.issues || []), newIssue],
-                },
-              }));
-            }
-            setActiveIssueStop(null);
+          stop={activeIssue.stop}
+          machine={activeIssue.machine}
+          driverId={driver.id}
+          driverName={driver.full_name}
+          onClose={() => {
+            refreshStopMeta(activeIssue.stop.id);
+            setActiveIssue(null);
           }}
         />
       )}
 
-      {activeNoteStop && (
+      {activeNote && (
         <AddNoteModal
-          stop={activeNoteStop}
-          driverId={driver?.id}
-          onClose={() => setActiveNoteStop(null)}
+          stop={activeNote.stop}
+          machine={activeNote.machine}
+          driverId={driver.id}
+          onClose={() => {
+            refreshStopMeta(activeNote.stop.id);
+            setActiveNote(null);
+          }}
         />
       )}
 
       {activePhotoStop && (
         <UploadPhotoModal
-          stop={activePhotoStop?.stop}
-          machine={activePhotoStop?.machine}
+          stop={activePhotoStop}
           driver={driver}
-          onUploaded={() => refreshStopMeta(activePhotoStop.stop.id)}
+          onUploaded={() => refreshStopMeta(activePhotoStop.id)}
           onClose={() => setActivePhotoStop(null)}
         />
       )}
 
-      {activePhotoViewUrl && (
+      {activePhotoUrl && activePhotoStop && (
         <ViewPhotoModal
-          photoUrl={activePhotoViewUrl}
-          onClose={() => setActivePhotoViewUrl(null)}
+          stop={activePhotoStop}
+          photoUrl={activePhotoUrl}
+          onClose={() => setActivePhotoUrl(null)}
+          onRetake={(stop) => setActivePhotoStop(stop)}
         />
       )}
     </div>

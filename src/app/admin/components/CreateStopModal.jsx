@@ -124,7 +124,7 @@ export default function CreateStopModal({ open, setOpen, onCreated }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent>
+      <DialogContent className='bg-white'>
         <DialogHeader>
           <DialogTitle>Create New Stop</DialogTitle>
         </DialogHeader>

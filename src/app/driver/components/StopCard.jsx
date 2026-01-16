@@ -8,7 +8,6 @@ import {
   CollapsibleTrigger,
 } from "../../../components/ui/collapsible";
 
-// Emoji icons for machines
 const MACHINE_ICONS = {
   snack: "🍫",
   soda: "🥤",
@@ -27,12 +26,11 @@ export default function StopCard({
   const [isOpen, setIsOpen] = useState(false);
   const [issueViewMachine, setIssueViewMachine] = useState(null);
 
-  // Use the meta objects directly — do NOT try to regroup
   const issuesByMachine = meta?.issuesByMachine || {};
   const notesByMachine = meta?.notesByMachine || {};
-  const photosByMachine = meta?.photosByMachine || {};
+  const latestPhoto = meta?.latestPhoto || null;
 
-  // --- FULL CARD VIEW FOR SINGLE MACHINE ISSUES ---
+  // --- FULL ISSUE VIEW ---
   if (issueViewMachine) {
     const issues = issuesByMachine[issueViewMachine] || [];
 
@@ -58,9 +56,12 @@ export default function StopCard({
             {issues.map((issue) => (
               <li key={issue.id} className="border rounded-lg p-3">
                 <div className="font-medium">
-                  Urgency: <span className="uppercase">{issue.urgency}</span>
+                  Urgency:{" "}
+                  <span className="uppercase">{issue.urgency}</span>
                 </div>
-                <p className="text-sm text-gray-700">{issue.description}</p>
+                <p className="text-sm text-gray-700">
+                  {issue.description}
+                </p>
               </li>
             ))}
           </ul>
@@ -69,22 +70,39 @@ export default function StopCard({
     );
   }
 
-  // --- NORMAL STOP CARD VIEW ---
+  // --- NORMAL STOP CARD ---
   return (
     <div className="relative border-2 shadow-xl rounded-lg p-4 flex flex-col gap-3 hover:border-blue-500">
       {/* Header */}
       <div className="flex justify-between items-start">
-        <div>
+        <div className="space-y-2">
           <h2 className="font-semibold text-lg">{stop.name}</h2>
-          {stop.address && <p className="text-sm text-gray-500">{stop.address}</p>}
+          {stop.address && (
+            <p className="text-sm text-gray-500">{stop.address}</p>
+          )}
+
+          <Button
+            size="small"
+            variant="outline"
+            onClick={() => {
+              if (meta?.latestPhoto) {
+                onViewPhoto(stop, meta.latestPhoto);
+              } else {
+                onUploadPhoto(stop);
+              }
+            }}
+          >
+            📸 {meta?.latestPhoto ? "View Photo" : "Upload Photo"}
+          </Button>
         </div>
 
-        {/* Machine icons */}
+        {/* Machine Icons */}
         <div className="flex gap-2">
           {stop.machines?.map((machine) => {
-            const hasIssues = (issuesByMachine[machine]?.length || 0) > 0;
-            const hasNotes = (notesByMachine[machine]?.length || 0) > 0;
-            const latestPhoto = photosByMachine[machine] || null;
+            const hasIssues =
+              (issuesByMachine[machine]?.length || 0) > 0;
+            const hasNotes =
+              (notesByMachine[machine]?.length || 0) > 0;
 
             return (
               <button
@@ -102,7 +120,7 @@ export default function StopCard({
 
                 {(hasIssues || hasNotes) && (
                   <span className="absolute -top-2 -right-2 text-xs">
-                    {hasIssues ? "⚠️" : hasNotes ? "📝" : null}
+                    {hasIssues ? "⚠️" : "📝"}
                   </span>
                 )}
               </button>
@@ -111,7 +129,7 @@ export default function StopCard({
         </div>
       </div>
 
-      {/* Collapsible machines */}
+      {/* Machines */}
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger>
           <span className="inline-block p-2 border rounded-lg hover:bg-slate-50 cursor-pointer mt-2">
@@ -127,11 +145,8 @@ export default function StopCard({
               machine={machine}
               issues={issuesByMachine[machine] || []}
               notes={notesByMachine[machine] || []}
-              latestPhoto={photosByMachine[machine] || null}
               onAddNote={onAddNote}
               onReportIssue={onReportIssue}
-              onUploadPhoto={onUploadPhoto}
-              onViewPhoto={onViewPhoto}
             />
           ))}
         </CollapsibleContent>
@@ -140,20 +155,17 @@ export default function StopCard({
   );
 }
 
-/** -----------------------------
- * MACHINE ROW
- * ----------------------------- */
+/* -----------------------------
+   MACHINE ROW
+----------------------------- */
 const MachineRow = forwardRef(function MachineRow(
   {
     stop,
     machine,
     issues,
     notes,
-    latestPhoto,
     onAddNote,
     onReportIssue,
-    onUploadPhoto,
-    onViewPhoto,
   },
   ref
 ) {
@@ -163,7 +175,9 @@ const MachineRow = forwardRef(function MachineRow(
       className="border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
     >
       <div className="flex items-center gap-2">
-        <span className="text-xl">{MACHINE_ICONS[machine] || "🔧"}</span>
+        <span className="text-xl">
+          {MACHINE_ICONS[machine] || "🔧"}
+        </span>
         <span className="font-semibold capitalize">{machine}</span>
       </div>
 
@@ -183,22 +197,11 @@ const MachineRow = forwardRef(function MachineRow(
         >
           Add Note
         </Button>
-
-        {machine === "snack" && (
-          <Button
-            size="small"
-            variant="outline"
-            onClick={() =>
-              latestPhoto ? onViewPhoto(latestPhoto) : onUploadPhoto({ stop, machine })
-            }
-          >
-            📸 {latestPhoto ? "View Photo" : "Upload Photo"}
-          </Button>
-        )}
       </div>
     </div>
   );
 });
+
 
 
 
